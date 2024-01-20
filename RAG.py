@@ -2,12 +2,13 @@ from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from flashrank import Ranker, RerankRequest
+from decouple import config
 import pypdfium2 as pypdfium
 import openai
 import numpy as np
 import json
 
-openai.api_key = "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"
+openai.api_key = config("api")
 embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
 ranker = Ranker(model_name="ms-marco-MultiBERT-L-12")
 
