@@ -5,3 +5,5 @@
 /Teams.txt
 /__pycache__
 /.env
+/.~lock.OCP.odt#
+/.gitignore
