@@ -1,3 +1,6 @@
+import time
+
+time_start = time.time()
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
 from langchain.text_splitter import RecursiveCharacterTextSplitter
@@ -9,18 +12,21 @@ import openai
 import numpy as np
 import json
 
-
-embedding_model = SentenceTransformer("distiluse-base-multilingual-cased-v1")
+print(f"Import time: {time.time() - time_start}")
+time_start = time.time()
+embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
 ranker = Ranker(model_name="ms-marco-MultiBERT-L-12")
 Client = openai.OpenAI(api_key=config("api"))
+print(f"Import time: {time.time() - time_start}")
 
-def read_file(filename):
+def read_file(filenames):
     """Read the pdf file and return the text."""
-    pdf = pypdfium.PdfDocument(filename)
     text = ""
-    for page in pdf:
-        text_page = page.get_textpage().get_text_range().replace('\r\n',' ')
-        text += text_page
+    for filename in filenames:
+        pdf = pypdfium.PdfDocument(filename)
+        for page in pdf:
+            text_page = page.get_textpage().get_text_range().replace('\r\n',' ')
+            text += text_page
     return text
 
 
@@ -33,25 +39,36 @@ def chunk(text):
     return splitter.split_text(text)
         
 
+def openai_embedding(text):
+    """Get the embedding of the text using openai."""
+    return Client.embeddings.create(model="text-embedding-3-small", input=text).data[0].embedding
+
 def get_embeddings(model,sentences):
     """Get the embeddings of the sentences."""
-    embeddings = model.encode(sentences)
+   
+    embeddings = []
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        embeddings = executor.map(openai_embedding,sentences)
+    """for i in range(len(sentences)):
+         embedding = Client.embeddings.create(model="text-embedding-3-small", input=sentences[i]).data[0].embedding
+         embeddings.append(embedding)"""
     return embeddings
-
-def prepare_chunks(filename,clear = True):
+def prepare_chunks(filename):
     """Read the file and prepare the chunks."""
 
     file_dir = "chunks.json"
-
+    time_start = time.time()
     text = read_file(filename)
+    print(f"Read file time: {time.time() - time_start}")
+    time_start = time.time()
     sentences = chunk(text)
+    print(f"Chunk time: {time.time() - time_start}")
+    time_start = time.time()
     embeddings = get_embeddings(embedding_model,sentences)
-
-    if clear:
-        data = {"embeddings":{},"sentences":[]}
-    else:
-        with open(file_dir,'r') as json_file:
-            data = json.load(json_file)
+    print(f"Embedding time: {time.time() - time_start}")
+    
+    data = {"embeddings":{},"sentences":[]}
+    
 
     for i in range(len(sentences)):
         data["embeddings"][sentences[i]] = embeddings[i].tolist()

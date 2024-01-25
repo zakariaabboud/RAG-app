@@ -21,10 +21,8 @@ def upload(doc):
     
     filenames = [os.path.join(doc[i]) for i in range(len(doc))] 
 
-    RAG.prepare_chunks(filename=filenames[0])
+    RAG.prepare_chunks(filenames)
     
-    for filename in filenames[1:]:
-        RAG.prepare_chunks(filename=filename,clear=False)
 
     return "Upload successfully!"
 
