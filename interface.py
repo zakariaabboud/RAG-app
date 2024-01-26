@@ -6,7 +6,7 @@ def respond(question):
     return  str(RAG.decompose_question(question))
    
 def respond_1(question):
-    return RAG.respond_2(question) # 3 chunks at a time and return the answer where the context is the first answer
+    return RAG.respond_3(question) # 3 chunks at a time and return the answer where the context is the first answer
 
 def respond_2(question):
     text = ""

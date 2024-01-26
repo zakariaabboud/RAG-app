@@ -57,15 +57,10 @@ def prepare_chunks(filename):
     """Read the file and prepare the chunks."""
 
     file_dir = "chunks.json"
-    time_start = time.time()
     text = read_file(filename)
-    print(f"Read time: {time.time() - time_start}")
-    time_start = time.time()
+   
     sentences = chunk(text)
-    print(f"Chunk time: {time.time() - time_start}")
-    time_start = time.time()
     embeddings = get_embeddings(embedding_model,sentences)
-    print(f"Embedding time: {time.time() - time_start}")
 
     
     data = {"embeddings":{},"sentences":[]}
@@ -95,7 +90,6 @@ def get_near_chunks(text,n = 6):
     """Get the chunks that are the most similar to the text."""
     
     file_dir = "chunks.json"
-
     with open(file_dir) as json_file:
         data = json.load(json_file)
 
@@ -103,6 +97,7 @@ def get_near_chunks(text,n = 6):
     embeddings_2 = np.array(list(data["embeddings"].values()))
 
     similarity = get_similarity(embeddings_1,embeddings_2)
+
     # 15 nearest chunks
     index = np.argsort(similarity[0])[-1:-15-1:-1]
 
@@ -115,6 +110,7 @@ def get_near_chunks(text,n = 6):
         near_chunks.append(chunks[i])
 
     near_passages = rerank(text,near_chunks,n)
+    
 
     # nearest 5 chunks with 2 chunks before and 2 chunks after
     near_chunks = [ "".join(data["sentences"][ chunks_index[i["text"]] - 2 : chunks_index[i["text"]] + 3 ])
@@ -186,48 +182,42 @@ def get_answer(question,context,temperature=0):
 
 def respond_1(question):
     """Get the answer to the question."""
-    print("start")
+    
     context = get_near_chunks(question, n = 4)
     answer = get_answer(question,context)
-    print("end")
+    
     return answer
 
 def respond_2(question):
     """Get the answer to the question."""
-    time_start = time.time()
+    
     context = get_near_chunks(question)
-    print(f"Get near chunks time: {time.time() - time_start}")
-    time_start = time.time()
+    
+    
     with concurrent.futures.ThreadPoolExecutor() as executor:
         query_1 = executor.submit(get_answer,question,context[:3])
         query_2 = executor.submit(get_answer,question,context[3:])
 
         answer_1 = query_1.result()
         answer_2 = query_2.result()
-    print(f"Get answer time: {time.time() - time_start}")
-    time_start = time.time()
+    
+    
     context = [answer_1,answer_2]
     answer = get_answer(question,context,temperature=0.8)
-    print(f"Get answer time: {time.time() - time_start}")
+    
     return answer
 
 
 
 def respond_3(question):
     """Get the answer to the question."""
-    time_start = time.time()
     questions = decompose_question(question)
-    print(f"Decompose question time: {time.time() - time_start}")
     
-    time_start = time.time()
     with concurrent.futures.ThreadPoolExecutor() as executor:
         answers = executor.map(respond_1,questions)
 
     context = list(answers)
-    print(f"Get context time: {time.time() - time_start}")
-    time_start = time.time()
     answer = get_answer(question,context,temperature=0.8)
-    print(f"Get answer time: {time.time() - time_start}")
     return answer
 
 
