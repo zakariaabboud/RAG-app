@@ -4,7 +4,7 @@ import pstats
 
 def main():
 
-    RAG.prepare_chunks(["Doc\Platon_critique_de_la_démocratie.pdf","Doc\Démocratie.pdf"])
+    print(RAG.respond_3("faut-il limiter la démocratie ?"))
 
 if __name__ == "__main__":
 

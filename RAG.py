@@ -1,6 +1,6 @@
 import time
 
-time_start = time.time()
+
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
 from langchain.text_splitter import RecursiveCharacterTextSplitter
@@ -9,15 +9,16 @@ from decouple import config
 import concurrent.futures
 import pypdfium2 as pypdfium
 import openai
+from mistralai.client import MistralClient, ChatMessage
 import numpy as np
 import json
 
-print(f"Import time: {time.time() - time_start}")
-time_start = time.time()
+
 embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
 ranker = Ranker(model_name="ms-marco-MultiBERT-L-12")
 Client = openai.OpenAI(api_key=config("api"))
-print(f"Import time: {time.time() - time_start}")
+Mistral_client = MistralClient(api_key=config("mistral_api"))
+
 
 def read_file(filenames):
     """Read the pdf file and return the text."""
@@ -45,27 +46,27 @@ def openai_embedding(text):
 
 def get_embeddings(model,sentences):
     """Get the embeddings of the sentences."""
-   
-    embeddings = []
+    
     with concurrent.futures.ThreadPoolExecutor() as executor:
-        embeddings = executor.map(openai_embedding,sentences)
-    """for i in range(len(sentences)):
-         embedding = Client.embeddings.create(model="text-embedding-3-small", input=sentences[i]).data[0].embedding
-         embeddings.append(embedding)"""
-    return embeddings
+        embeddings = executor.map(model.encode, sentences)
+    #embeddings = model.encode(sentences)
+        
+    return list(embeddings)
+
 def prepare_chunks(filename):
     """Read the file and prepare the chunks."""
 
     file_dir = "chunks.json"
     time_start = time.time()
     text = read_file(filename)
-    print(f"Read file time: {time.time() - time_start}")
+    print(f"Read time: {time.time() - time_start}")
     time_start = time.time()
     sentences = chunk(text)
     print(f"Chunk time: {time.time() - time_start}")
     time_start = time.time()
     embeddings = get_embeddings(embedding_model,sentences)
     print(f"Embedding time: {time.time() - time_start}")
+
     
     data = {"embeddings":{},"sentences":[]}
     
@@ -102,8 +103,8 @@ def get_near_chunks(text,n = 6):
     embeddings_2 = np.array(list(data["embeddings"].values()))
 
     similarity = get_similarity(embeddings_1,embeddings_2)
-    # 30 nearest chunks
-    index = np.argsort(similarity[0])[-1:-30-1:-1]
+    # 15 nearest chunks
+    index = np.argsort(similarity[0])[-1:-15-1:-1]
 
     chunks_index = { data["sentences"][i]:i for i in index }
 
@@ -134,6 +135,15 @@ def get_completion(messages, model="gpt-3.5-turbo",temperature=0):
     )
 
     return response.choices[0].message.content
+def get_completion_mistral(messages, model="mistral-small",temperature=0):
+        
+        response = Mistral_client.chat(
+            messages=messages,
+            model=model,
+            temperature=temperature,
+        )
+    
+        return response.choices[0].message.content
 
 def decompose_question(question):
     """Decompose the question into sentences."""
@@ -142,9 +152,11 @@ def decompose_question(question):
     prompt += question + "\n"
     prompt += "les questions doivent être séparées par un retour à la ligne. \n"
 
-    messages = [{"role": "user", "content" : prompt}]
+    #messages = [{"role": "user", "content" : prompt}]
+    messages = [ChatMessage(role = "user", content = prompt)]
 
-    gpt_respond = get_completion(messages)
+    #gpt_respond = get_completion(messages)
+    gpt_respond = get_completion_mistral(messages)
 
     questions = gpt_respond.split("\n")
 
@@ -161,10 +173,12 @@ def get_answer(question,context,temperature=0):
     for i in context:
         prompt += i + "\n"
     prompt += "La réponse doit être avec tes propres mot.\n"
-    messages.append({"role": "system", "content" : prompt})
-    messages.append({"role": "user", "content" : question})
+    #messages.append({"role": "system", "content" : prompt})
+    #messages.append({"role": "user", "content" : question})
+    messages.append(ChatMessage(role = "system", content = prompt))
+    messages.append(ChatMessage(role = "user", content = question))
     
-    gpt_respond = get_completion(messages,temperature=temperature)
+    gpt_respond = get_completion_mistral(messages,temperature=temperature)
     return gpt_respond
 
 
@@ -172,45 +186,49 @@ def get_answer(question,context,temperature=0):
 
 def respond_1(question):
     """Get the answer to the question."""
-    
+    print("start")
     context = get_near_chunks(question, n = 4)
-    
-    return get_answer(question,context)
+    answer = get_answer(question,context)
+    print("end")
+    return answer
 
 def respond_2(question):
     """Get the answer to the question."""
-    
+    time_start = time.time()
     context = get_near_chunks(question)
-
+    print(f"Get near chunks time: {time.time() - time_start}")
+    time_start = time.time()
     with concurrent.futures.ThreadPoolExecutor() as executor:
         query_1 = executor.submit(get_answer,question,context[:3])
         query_2 = executor.submit(get_answer,question,context[3:])
 
         answer_1 = query_1.result()
         answer_2 = query_2.result()
-    
+    print(f"Get answer time: {time.time() - time_start}")
+    time_start = time.time()
     context = [answer_1,answer_2]
-
-    return get_answer(question,context)
+    answer = get_answer(question,context,temperature=0.8)
+    print(f"Get answer time: {time.time() - time_start}")
+    return answer
 
 
 
 def respond_3(question):
-
+    """Get the answer to the question."""
+    time_start = time.time()
     questions = decompose_question(question)
+    print(f"Decompose question time: {time.time() - time_start}")
     
-    dict_answers = {}
+    time_start = time.time()
     with concurrent.futures.ThreadPoolExecutor() as executor:
-        for i in range(len(questions)):
-            dict_answers[i] = executor.submit(respond_1,questions[i])
-        
-        answers = []
-        for i in range(len(questions)):
-            answers.append(dict_answers[i].result())
+        answers = executor.map(respond_1,questions)
 
-    context = answers
-
-    return get_answer(question,context,temperature=0.8)
+    context = list(answers)
+    print(f"Get context time: {time.time() - time_start}")
+    time_start = time.time()
+    answer = get_answer(question,context,temperature=0.8)
+    print(f"Get answer time: {time.time() - time_start}")
+    return answer
 
 
     
