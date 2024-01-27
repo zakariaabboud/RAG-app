@@ -28,6 +28,7 @@ def read_file(filenames):
         for page in pdf:
             text_page = page.get_textpage().get_text_range().replace('\r\n',' ')
             text += text_page
+        pdf.close()
     return text
 
 
