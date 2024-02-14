@@ -2,7 +2,6 @@ import time
 
 
 from sentence_transformers import SentenceTransformer
-from sklearn.metrics.pairwise import cosine_similarity
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from flashrank import Ranker, RerankRequest
 from decouple import config
@@ -76,8 +75,10 @@ def prepare_chunks(filename):
     
 
 def get_similarity(embeddings_1,embeddings_2):
-    """Get the similarity between two embeddings."""
-    return cosine_similarity(embeddings_1,embeddings_2)
+    """Get the cosine similarity between two embeddings."""
+    similarity = np.dot(embeddings_1,embeddings_2.T) / (np.linalg.norm(embeddings_1) * np.linalg.norm(embeddings_2,axis=1))
+    return similarity
+    
 
 def rerank(query, chunks, n = 5):
     """Rerank the chunks."""
@@ -182,7 +183,7 @@ def get_answer(question,context,temperature=0):
 
 
 def respond_1(question):
-    """Get the answer to the question."""
+    """Get the answer to the question uitilizing the context of the first 4 chunks."""
     
     context = get_near_chunks(question, n = 4)
     answer = get_answer(question,context)
@@ -190,7 +191,7 @@ def respond_1(question):
     return answer
 
 def respond_2(question):
-    """Get the answer to the question."""
+    """Get the answer to the question with 6 chunks. 3 chunks at a time."""
     
     context = get_near_chunks(question)
     
@@ -211,7 +212,7 @@ def respond_2(question):
 
 
 def respond_3(question):
-    """Get the answer to the question."""
+    """Get the answer to the question by decomposing the question and using the context of the first 4 chunks for each question."""
     questions = decompose_question(question)
     
     with concurrent.futures.ThreadPoolExecutor() as executor:

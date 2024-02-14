@@ -2,13 +2,14 @@ import RAG
 import gradio as gr
 import os
 
-def respond(question):
-    return  str(RAG.decompose_question(question))
+
    
 def respond_1(question):
+    """Get the answer to the question """
     return RAG.respond_3(question) # 3 chunks at a time and return the answer where the context is the first answer
 
 def respond_2(question):
+    """ get the near chunks of the question """
     text = ""
     L = RAG.get_near_chunks(question)
     for i in range(len(L)):
@@ -41,4 +42,4 @@ with gr.Blocks() as block:
     submit.click(respond_1, inputs=question, outputs=response)
     submit_doc.click(upload, inputs=doc, outputs=submit_statu)
 
-block.launch()
+block.launch(share=True)
