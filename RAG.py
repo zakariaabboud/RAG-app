@@ -8,6 +8,7 @@ import openai
 # import cohere
 import numpy as np
 import json
+from decouple import config
 
 instructions = """Tu es un expert des produits financiers de Cyrus.
 Voici la liste produits Cyrus par catégorie : 
@@ -24,7 +25,7 @@ Voici la liste produits Cyrus par catégorie :
 
 
 #ranker = Ranker(model_name="ms-marco-MultiBERT-L-12")
-Client = openai.OpenAI(api_key="sk-proj-nLt3O3y3xngBMdSv3WofT3BlbkFJj1MOSHzjr1bcE35K4bix")
+Client = openai.OpenAI(api_key=config("openai_api"))
 # co = cohere.Client(api_key="RsLI9vFKpeEUpZ787jK0h30jN8VlX32ABrqjB0NJ")
 #Mistral_client = MistralClient(api_key=config("mistral_api"))
 
