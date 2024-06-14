@@ -2,19 +2,20 @@ import RAG
 import gradio as gr
 import os
 
-
    
 def respond_1(question):
     """Get the answer to the question """
     return RAG.respond_3(question) # 3 chunks at a time and return the answer where the context is the first answer
 
 def respond_2(question):
-    """ get the near chunks of the question """
-    text = ""
-    L = RAG.get_near_chunks(question)
-    for i in range(len(L)):
-        text += f" {i+1}) {L[i]} \n"
+    """ Return Qustion decomposition """
+    text =""
+    result = RAG.get_near_chunks(question)
+    for i in result:
+        text += i + "\n"
     return text
+
+    
 
 def upload(doc):
     if doc is None:
@@ -29,7 +30,7 @@ def upload(doc):
 
 
 with gr.Blocks() as block:
-    gr.Markdown("## RAG")
+    gr.Markdown("## Cyrus Assistant")
     with gr.Tab("Chat") as respond_tab:
         question = gr.Textbox(label="Question",placeholder="Écris ta question ici")
         response = gr.Textbox(label="Reponse")
@@ -42,4 +43,4 @@ with gr.Blocks() as block:
     submit.click(respond_1, inputs=question, outputs=response)
     submit_doc.click(upload, inputs=doc, outputs=submit_statu)
 
-block.launch(share=True)
+block.launch()

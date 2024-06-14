@@ -1,10 +1,11 @@
 import RAG
-import cProfile
-import pstats
+
 
 def main():
 
-    print(RAG.respond_3("faut-il limiter la démocratie ?"))
+    print(RAG.get_near_chunks('Quelle est la durée de vie de la SCPI Pierval Santé ?'))
+
+
 
 if __name__ == "__main__":
 
