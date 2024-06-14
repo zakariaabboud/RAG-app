@@ -1,6 +1,6 @@
 # Libraries to install :
 
-gradio, langchain, openai, python-docx, numpy
+gradio, langchain, openai, python-docx, numpy, python-decouple
 
 # How to run :
 
