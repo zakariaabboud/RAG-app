@@ -146,15 +146,14 @@ def get_completion_mistral(messages, model="mistral-small",temperature=0):
 def decompose_question(question):
     """Decompose the question into sentences."""
 
-    prompt = "Décompose si nécessaire la question suivante en questions pertinentes ( maximum 3 questions et minimum 1 question) : \n"
+    prompt = "Décompose si nécessaire la question suivante en questions partielles pertinentes ( maximum 3 questions et minimum 1 question) : \n"
     prompt += question + "\n"
     prompt += "les questions doivent être séparées par un retour à la ligne. \n"
 
-    #messages = [{"role": "user", "content" : prompt}]
     messages = [ChatMessage(role = "user", content = prompt)]
 
-    #gpt_respond = get_completion(messages)
-    gpt_respond = get_completion_mistral(messages)
+    gpt_respond = get_completion(messages)
+    # gpt_respond = get_completion_mistral(messages)
 
     questions = gpt_respond.split("\n")
 
@@ -171,18 +170,14 @@ def get_answer(question,context,temperature=0):
     for i in context:
         prompt += i + "\n"
     prompt += "La réponse doit être avec tes propres mot.\n"
-    #messages.append({"role": "system", "content" : prompt})
-    #messages.append({"role": "user", "content" : question})
+
     messages.append(ChatMessage(role = "system", content = prompt))
     messages.append(ChatMessage(role = "user", content = question))
     
     gpt_respond = get_completion_mistral(messages,temperature=temperature)
     return gpt_respond
 
-
-
-
-def respond_1(question):
+def minor_response(question):
     """Get the answer to the question uitilizing the context of the first 4 chunks."""
     
     context = get_near_chunks(question, n = 4)
@@ -190,33 +185,12 @@ def respond_1(question):
     
     return answer
 
-def respond_2(question):
-    """Get the answer to the question with 6 chunks. 3 chunks at a time."""
-    
-    context = get_near_chunks(question)
-    
-    
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        query_1 = executor.submit(get_answer,question,context[:3])
-        query_2 = executor.submit(get_answer,question,context[3:])
-
-        answer_1 = query_1.result()
-        answer_2 = query_2.result()
-    
-    
-    context = [answer_1,answer_2]
-    answer = get_answer(question,context,temperature=0.8)
-    
-    return answer
-
-
-
-def respond_3(question):
+def respond(question):
     """Get the answer to the question by decomposing the question and using the context of the first 4 chunks for each question."""
     questions = decompose_question(question)
     
     with concurrent.futures.ThreadPoolExecutor() as executor:
-        answers = executor.map(respond_1,questions)
+        answers = executor.map(minor_response,questions)
 
     context = list(answers)
     answer = get_answer(question,context,temperature=0.8)

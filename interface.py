@@ -4,17 +4,9 @@ import os
 
 
    
-def respond_1(question):
+def respond(question):
     """Get the answer to the question """
-    return RAG.respond_3(question) # 3 chunks at a time and return the answer where the context is the first answer
-
-def respond_2(question):
-    """ get the near chunks of the question """
-    text = ""
-    L = RAG.get_near_chunks(question)
-    for i in range(len(L)):
-        text += f" {i+1}) {L[i]} \n"
-    return text
+    return RAG.respond(question)
 
 def upload(doc):
     if doc is None:
@@ -39,7 +31,7 @@ with gr.Blocks() as block:
         submit_doc = gr.Button("Soumettre")
         submit_statu = gr.Textbox(placeholder = "Charge un document pour commencer",label="Upload")
     
-    submit.click(respond_1, inputs=question, outputs=response)
+    submit.click(respond, inputs=question, outputs=response)
     submit_doc.click(upload, inputs=doc, outputs=submit_statu)
 
 block.launch(share=True)
