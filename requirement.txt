@@ -1,5 +1,5 @@
 gradio
-langchain
+langchain-text-splitters
 sentence-transformers
 openai
 pypdfium2

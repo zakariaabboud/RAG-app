@@ -1,6 +1,6 @@
 # Libraries to install :
 
-gradio, langchain, sentence_transformers, openai, pypdfium, flashrank, python-decouple, mistralai, numpy
+gradio, langchain-text-splitters, sentence_transformers, openai, pypdfium, flashrank, python-decouple, mistralai, numpy
 
 # how to use api :
 
