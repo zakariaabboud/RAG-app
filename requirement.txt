@@ -1,0 +1,9 @@
+gradio
+langchain
+sentence-transformers
+openai
+pypdfium2
+flashrank
+python-decouple
+mistralai
+numpy
